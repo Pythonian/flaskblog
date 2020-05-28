@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Tags{% endblock %}
+
+{% block content %}
+
+{% for tag in object_list.items %}
+<a href="{{ url_for('tag', slug=tag.slug) }}">{{ tag.name }}</a>
+{% endfor %}
+
+{% endblock %}

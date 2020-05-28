@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title }}{% endblock %}
+{% from "form_macros.html" import form_field %}
+
+{% block content %}
+
+Published {{ entry.created.strftime('%Y-%m-%d') }}
+
+{{ entry.body }}
+
+{% for tag in entry.tags %}
+<a href="{{ url_for('tag', slug=tag.slug) }}">{{ tag.name }}</a>
+{% endfor %}
+
+{% if current_user == entry.author %}
+<a href="{{ url_for('edit', slug=entry.slug) }}">Edit post</a> |
+<a href="{{ url_for('delete', slug=entry.slug) }}">Delete post</a>
+{% endif %}
+
+<h4 id="comment-form">Submit a comment</h4>
+
+<form 
+  action="/api/comment" 
+  class="form form-horizontal" 
+  id="comment-form" 
+  method="post"
+>
+  {{ form_field(form.name) }}
+  {{ form_field(form.email) }}
+  {{ form_field(form.url) }}
+  {{ form_field(form.body) }}
+  {{ form.entry_id() }}
+
+  <div class="form-group">
+    <div class="col-sm-offset-3 col-sm-9">
+      <button type="submit" class="btn btn-default">Submit</button>
+    </div>
+  </div>
+  
+</form>
+{% endblock %}
