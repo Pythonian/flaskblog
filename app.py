@@ -1,3 +1,5 @@
+import re
+
 from datetime import datetime
 from slugify import slugify
 
@@ -71,6 +73,8 @@ class Entry(db.Model):
     updated = db.Column(db.DateTime, default=datetime.now,
                         onupdate=datetime.now)
     status = db.Column(db.SmallInteger, default=PUBLISHED)
+    # Queries the Tag model via the entry_tags assoc table; then create
+    # a backref on the Tag model with entries & returns a Queryset object
     tags = db.relationship('Tag', secondary=entry_tags,
                            backref=db.backref('entries', lazy='dynamic'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -83,10 +87,13 @@ class Entry(db.Model):
     def __repr__(self):
         return f'Entry: {self.title}'
 
+    def get_absolute_url(self):
+        return url_for('entry', slug=self.slug)
+
     def generate_slug(self):
-        self.slug = ''
-        if self.title:
-            self.slug = slugify(self.title)
+        slug = self.slug
+        if not slug:
+            slug = slugify(self.title)
 
 
 class Tag(db.Model):
@@ -126,6 +133,13 @@ class Comment(db.Model):
 
 
 # FORMS
+
+def is_proper_username(form, field):
+    if not re.match(r"^\w+$", field.data):
+        msg = f"{field.name} should not have any of these characters \
+                only: a-z0-9_"
+        raise ValidationError(msg)
+
 
 class TagField(StringField):
     def _value(self):
@@ -169,7 +183,8 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username',
-                           validators=[DataRequired(), Length(min=2, max=20)])
+                           validators=[DataRequired(), is_proper_username,
+                                       Length(min=2, max=20)])
     email = StringField('Email',
                         validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -187,6 +202,22 @@ class RegistrationForm(FlaskForm):
         if User.query.filter_by(email=email.data).first():
             raise ValidationError(
                 'That email is taken. Please choose a different one.')
+
+    @staticmethod
+    def validate_password(form, field):
+        data = field.data
+        if not re.findall('.*[a-z].*', data):
+            msg = f"{field.name} should have at least one lowercase character."
+            raise ValidationError(msg)
+        if not re.findall('.*[A-Z].*', data):
+            msg = f"{field.name} should have at least one uppercase character"
+            raise ValidationError(msg)
+        if not re.findall('.*[0-9].*', data):
+            msg = f"{field.name} should have at least one number"
+            raise ValidationError(msg)
+        if not re.findall(r".*[^ a-zA-Z0-9].*", data):
+            msg = f"{field.name} should have at least one special character"
+            raise ValidationError(msg)
 
 
 class UpdateAccountForm(FlaskForm):
